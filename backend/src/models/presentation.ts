@@ -1,14 +1,27 @@
-// /src/models/presentation.ts
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToMany,
+  ManyToMany,
+  JoinTable,
+} from "typeorm";
+import { Slide } from "./slide";
+import { User } from "./user";
 
-export interface Presentation {
-  id: string;
-  creatorId: string;
-  slides: Slide[];
-  users: Map<string, { role: "creator" | "editor" | "viewer" }>;
-}
+@Entity()
+export class Presentation {
+  @PrimaryGeneratedColumn("uuid")
+  id!: string;
 
-export interface Slide {
-  id: string;
-  content: string;
-  elements: Element[];
+  @Column()
+  creatorId!: string;
+
+  @OneToMany(() => Slide, (slide) => slide.presentation, { cascade: true })
+  slides!: Slide[];
+
+  @ManyToMany(() => User, (user) => user.presentations)
+  @JoinTable() // required for owning side of MtM relationship
+  users!: User[];
 }
+export { Slide };

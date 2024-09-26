@@ -2,6 +2,7 @@ import express, { Application, Request, Response } from "express";
 import { createServer } from "http";
 import cors from "cors";
 import { createWebSocketServer } from "./websocket/ws-server";
+import "reflect-metadata";
 import apiRoutes from "./routes/api-routes";
 
 // init Express app and HTTP server

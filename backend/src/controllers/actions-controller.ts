@@ -7,7 +7,7 @@ import {
 import { Message } from "../models/message";
 import { addSlide, deleteSlide, editText } from "./slide-controller";
 
-// Handle all WebSocket actions for presentations and slides
+// handle all WebSocket actions for presentations and slides
 export const handlePresentationActions = (
   message: Message,
   wss: WebSocket.Server,
@@ -27,15 +27,15 @@ export const handlePresentationActions = (
       break;
 
     case "addSlide":
-      addSlide(message, wss);
+      addSlide(message, ws, wss);
       break;
 
     case "editText":
-      editText(message, wss);
+      editText(message, ws, wss);
       break;
 
     case "deleteSlide":
-      deleteSlide(message, wss);
+      deleteSlide(message, ws, wss);
       break;
 
     // TODO: add more cases as functionality grows
