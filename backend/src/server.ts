@@ -13,10 +13,17 @@ app.use(express.json());
 
 interface Message {
   type: 'action' | 'chat';  // communication types
-  action?: 'addSlide' | 'deleteSlide' | 'editText' | 'setRole';  // specific actions for presentation
+  action?: 'createPresentation' | 'joinPresentation' | 'deletePresentation' | 'addSlide' | 'deleteSlide' | 'editText' | 'setRole';  // specific actions for presentation
   payload: any;
   userId?: string;  // to keep track of which user sent which message
   role?: 'creator' | 'editor' | 'viewer';  // user roles
+}
+
+interface Presentation {
+  id: string;
+  creatorId: string;
+  slides: Slide[];
+  users: Map<string, { role: 'creator' | 'editor' | 'viewer' }>;
 }
 
 interface Slide {
@@ -25,7 +32,6 @@ interface Slide {
   elements: Element[];
 }
 
-
 // handle WebSocket connections
 wss.on("connection", (ws: WebSocket) => {
   console.log("A new user connected");
@@ -33,11 +39,58 @@ wss.on("connection", (ws: WebSocket) => {
   // TODO: store users/slides in a db 
   const users = new Map<string, { role: string }>();
   const slides: Slide[] = [];
+  let presentations: Map<string, Presentation> = new Map();
+
 
   ws.on("message", (data: string) => {
     const message: Message = JSON.parse(data);
 
     switch (message.action) {
+
+      case "createPresentation":
+        const newPresentationId = generatePresentationId();
+        const newPresentation: Presentation = {
+          id: newPresentationId,
+          creatorId: message.userId!,
+          slides: [],
+          users: new Map([[message.userId!, { role: 'creator' }]])
+        };
+        presentations.set(newPresentationId, newPresentation);
+
+        // broadcast the new presentation to the creator
+        ws.send(JSON.stringify({ action: "presentationCreated", payload: { presentationId: newPresentationId } }));
+        break;
+
+      case "joinPresentation":
+        const presentation = presentations.get(message.payload.presentationId);
+        if (presentation) {
+          presentation.users.set(message.userId!, { role: 'viewer' }); // default role is viewer
+          ws.send(JSON.stringify({ action: "joinedPresentation", payload: presentation }));
+        }
+        break;
+
+        case "deletePresentation":
+          const presentationToDelete = presentations.get(message.payload.presentationId);
+          if (presentationToDelete && message.userId === presentationToDelete.creatorId) {
+            // only creator can delete presentation
+            presentations.delete(message.payload.presentationId);  // Remove the presentation
+        
+            // notify all connected users that the presentation has been deleted
+            wss.clients.forEach((client) => {
+              if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify({
+                  action: "presentationDeleted",
+                  payload: { presentationId: message.payload.presentationId }
+                }));
+              }
+            });
+        
+            console.log(`Presentation ${message.payload.presentationId} deleted by ${message.userId}`);
+          } else {
+            console.log("Unauthorized attempt to delete presentation.");
+          }
+          break;
+
       case "addSlide":
         // handle adding a new slide (creators and editors only)
         if (message.role === "creator" || message.role === "editor") {
@@ -79,7 +132,6 @@ wss.on("connection", (ws: WebSocket) => {
           const slideIndex = slides.findIndex(s => s.id === message.payload.slideId); // retrieve index for delete
           if (slideIndex !== -1) { // if an index could be retrieved
             slides.splice(slideIndex, 1); // splice it out
-            console.log(`Slide ${message.payload.slideId} deleted by ${message.userId}`);
 
             // broadcast slide deletion to all users
             wss.clients.forEach((client) => {
@@ -87,6 +139,10 @@ wss.on("connection", (ws: WebSocket) => {
                 client.send(JSON.stringify({ action: "slideDeleted", payload: { slideId: message.payload.slideId } }));
               }
             });
+
+            console.log(`Slide ${message.payload.slideId} deleted by ${message.userId}`);
+          } else {
+            console.log("Unauthorized attempt to delete slide.");
           }
         }
         break;
@@ -98,10 +154,17 @@ wss.on("connection", (ws: WebSocket) => {
           const newRole = message.payload.newRole;
           users.set(targetUserId, { role: newRole });
           console.log(`User ${targetUserId} is now a ${newRole}`);
+          // notify all clients about the role change
+          wss.clients.forEach((client) => {
+            client.send(JSON.stringify({
+              action: "roleChanged",
+              payload: { targetUserId, newRole }
+            }));
+          });
         }
         break;
 
-        // TODO: add more cases as functionality grows
+      // TODO: add more cases as functionality grows
     }
   });
 
@@ -112,6 +175,10 @@ wss.on("connection", (ws: WebSocket) => {
 });
 
 function generateSlideId(): string {
+  return Math.random().toString(36).substring(2, 9);
+}
+
+function generatePresentationId(): string {
   return Math.random().toString(36).substring(2, 9);
 }
 
