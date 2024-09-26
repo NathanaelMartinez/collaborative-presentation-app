@@ -1,6 +1,6 @@
 import WebSocket from "ws";
-import { handlePresentationActions } from "../controllers/presentation-controller";
 import { Message } from "../models/message";
+import { handlePresentationActions } from "../controllers/actions-controller";
 
 // WebSocket Server
 export const createWebSocketServer = (server: any) => {
