@@ -1,13 +1,22 @@
-import React, { useEffect } from 'react';
+import { useEffect } from "react";
 
 const WebSocketClient: React.FC = () => {
   useEffect(() => {
-    // Connect to WebSocket server
+    // connect to WebSocket server
     const ws = new WebSocket('ws://localhost:8080');
 
     ws.onopen = () => {
       console.log('Connected to WebSocket server');
-      ws.send(JSON.stringify({ type: 'message', payload: 'Hello from client' }));
+      
+      // test send action message to add a new slide
+      const message = {
+        type: 'action',
+        action: 'addSlide',
+        payload: { content: 'New Slide Content' },
+        userId: 'user123',  // mock userId for testing
+        role: 'creator'  // assign creator role
+      };
+      ws.send(JSON.stringify(message)); // send the addSlide action to the server
     };
 
     ws.onmessage = (event) => {
@@ -26,7 +35,7 @@ const WebSocketClient: React.FC = () => {
 
   return (
     <div>
-      <h1>Basic WebSocket Client</h1>
+      <h1>WebSocket Client</h1>
     </div>
   );
 };
