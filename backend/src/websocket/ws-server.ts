@@ -15,7 +15,7 @@ export const createWebSocketServer = (server: any) => {
       handlePresentationActions(message, wss, ws); // process actions from clients
     });
 
-    // Handle disconnects
+    // handle disconnects
     ws.on("close", () => {
       console.log("User disconnected");
     });

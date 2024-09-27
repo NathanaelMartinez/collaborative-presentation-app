@@ -4,7 +4,16 @@ import {
   joinPresentation,
   deletePresentation,
 } from "./presentation-controller";
-import { Message } from "../shared/types/message";
+import {
+  Message,
+  ActionType,
+  CreatePresentationPayload,
+  JoinPresentationPayload,
+  DeletePresentationPayload,
+  AddSlidePayload,
+  EditTextPayload,
+  DeleteSlidePayload,
+} from "../shared/types/message";
 import { addSlide, deleteSlide, editText } from "./slide-controller";
 
 // handle all WebSocket actions for presentations and slides
@@ -14,30 +23,33 @@ export const handlePresentationActions = (
   ws: WebSocket
 ) => {
   switch (message.action) {
-    case "createPresentation":
-      createPresentation(message, ws);
+    case ActionType.CreatePresentation:
+      // type cast payload to specific payload type
+      createPresentation(message.payload as CreatePresentationPayload, ws);
       break;
 
-    case "joinPresentation":
-      joinPresentation(message, ws);
+    case ActionType.JoinPresentation:
+      joinPresentation(message.payload as JoinPresentationPayload, ws);
       break;
 
-    case "deletePresentation":
-      deletePresentation(message, ws, wss);
+    case ActionType.DeletePresentation:
+      deletePresentation(message.payload as DeletePresentationPayload, ws, wss);
       break;
 
-    case "addSlide":
-      addSlide(message, ws, wss);
+    case ActionType.AddSlide:
+      addSlide(message.payload as AddSlidePayload, ws, wss);
       break;
 
-    case "editText":
-      editText(message, ws, wss);
+    case ActionType.EditText:
+      editText(message.payload as EditTextPayload, ws, wss);
       break;
 
-    case "deleteSlide":
-      deleteSlide(message, ws, wss);
+    case ActionType.DeleteSlide:
+      deleteSlide(message.payload as DeleteSlidePayload, ws, wss);
       break;
 
     // TODO: add more cases as functionality grows
+    default:
+      console.error("Unknown action type:", message.action);
   }
 };

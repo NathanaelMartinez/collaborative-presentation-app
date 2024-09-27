@@ -1,6 +1,6 @@
 import { AppDataSource } from "../data-source";
 import { UserPresentation } from "../models/user-presentation";
-import { UserRole } from "../shared/enums/user-role.enum";
+import { UserRole } from "../shared/enums/enums";
 
 export const validatePermissions = async (
   userId: number,

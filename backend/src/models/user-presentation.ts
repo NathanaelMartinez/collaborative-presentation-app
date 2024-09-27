@@ -1,7 +1,7 @@
 import { Entity, ManyToOne, Column, PrimaryGeneratedColumn } from "typeorm";
 import { User } from "./user";
 import { Presentation } from "./presentation";
-import { UserRole } from "../shared/enums/user-role.enum";
+import { UserRole } from "../shared/enums/enums";
 
 @Entity()
 export class UserPresentation {
