@@ -1,13 +1,35 @@
 import React from "react";
 import placeholderImage from "../assets/placeholder-image.jpg";
+import { useWebSocket } from "../hooks/use-websocket";
+import { CreatePresentationPayload, ActionType, Message } from "../../../shared/types/message";
+import { useUser } from "../context/user-context";
 
 const Home: React.FC = () => {
+  const { sendMessage } = useWebSocket("ws://localhost:8080");
+
+  // Get the logged-in user
+  const { userId } = useUser();
+
+   // function to create new presentation
+  const handleCreatePresentation = () => {
+    const payload: CreatePresentationPayload = { content: "New Presentation Content" };
+
+    const message: Message = {
+      type: "action",
+      action: ActionType.CreatePresentation,
+      payload,
+      userId: userId || "guest", // Use the userId from context, fallback to "guest" 
+    };
+
+    sendMessage(message);
+  };
+
   return (
     <div className="container-fluid h-100 d-flex p-0">
       {/* left Sidebar */}
       <div className="bg-white border-end shadow-sm d-flex flex-column align-items-center p-3" style={{ width: "12rem" }}>
         <h4 className="text-dark mb-4">Create Your Own Presentation!</h4>
-        <button className="btn btn-primary w-100 mb-3">New Presentation</button>
+        <button className="btn btn-primary w-100 mb-3" onClick={handleCreatePresentation} >New Presentation</button>
       </div>
 
       {/* presentation list */}
