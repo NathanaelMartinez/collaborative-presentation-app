@@ -23,7 +23,7 @@ export const handlePresentationActions = (
       break;
 
     case "deletePresentation":
-      deletePresentation(message, wss);
+      deletePresentation(message, ws, wss);
       break;
 
     case "addSlide":

@@ -2,25 +2,7 @@ import WebSocket from "ws";
 import { Slide } from "../models/slide";
 import { Presentation } from "../models/presentation";
 import { AppDataSource } from "../data-source";
-import { generateSlideId } from "../utils/id-generator";
-import { User, UserRole } from "../models/user";
-
-// validate if the user is either a creator or editor
-export const validateUserIsEditorOrCreator = async (
-  userId: number
-): Promise<boolean> => {
-  const userRepository = AppDataSource.getRepository(User);
-
-  // find the user by id
-  const user = await userRepository.findOne({ where: { id: userId } });
-
-  if (!user) {
-    throw new Error("User not found");
-  }
-
-  // check if user is either creator or editor
-  return user.role === UserRole.Creator || user.role === UserRole.Editor;
-};
+import { validatePermissions } from "../services/role-validation";
 
 // handle adding a new slide
 export const addSlide = async (
@@ -29,18 +11,21 @@ export const addSlide = async (
   wss: WebSocket.Server
 ) => {
   try {
-    const hasPermissions = await validateUserIsEditorOrCreator(message.userId);
+    const hasPermissions = await validatePermissions(
+      message.userId,
+      message.payload.presentationId
+    );
 
-    // validate user permissions
     if (!hasPermissions) {
       ws.send(JSON.stringify({ error: "Insufficient permissions" }));
       return;
     }
 
-    // existing logic for finding presentation and adding the slide
+    // fetch the presentation and slides repos
     const presentationRepository = AppDataSource.getRepository(Presentation);
     const slideRepository = AppDataSource.getRepository(Slide);
 
+    // find presentation user is trying to add slides to
     const presentation = await presentationRepository.findOne({
       where: { id: message.payload.presentationId },
       relations: ["slides"],
@@ -51,15 +36,14 @@ export const addSlide = async (
       return;
     }
 
+    // create and save the new slide
     const newSlide = slideRepository.create({
-      id: generateSlideId(),
-      content: "",
+      content: "", // start with nothing
       presentation: presentation,
     });
-
     await slideRepository.save(newSlide);
 
-    // broadcast new slide to all connected clients
+    // broadcast the new slide to all clients
     wss.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(
@@ -68,11 +52,12 @@ export const addSlide = async (
       }
     });
   } catch (error) {
-    if (error instanceof Error) {
-      ws.send(JSON.stringify({ error: error.message }));
-    } else {
-      ws.send(JSON.stringify({ error: "An unknown error occurred" }));
-    }
+    ws.send(
+      JSON.stringify({
+        error:
+          error instanceof Error ? error.message : "An unknown error occurred",
+      })
+    );
   }
 };
 
@@ -82,22 +67,29 @@ export const editText = async (
   ws: WebSocket,
   wss: WebSocket.Server
 ) => {
-  const userRepository = AppDataSource.getRepository(User);
-  const slideRepository = AppDataSource.getRepository(Slide);
+  try {
+    const hasPermissions = await validatePermissions(
+      message.userId,
+      message.payload.presentationId
+    );
 
-  const user = await userRepository.findOne({ where: { id: message.userId } });
-  if (!user || (user.role !== "creator" && user.role !== "editor")) {
-    ws.send(JSON.stringify({ error: "Insufficient permissions" }));
-    return;
-  }
+    if (!hasPermissions) {
+      ws.send(JSON.stringify({ error: "Insufficient permissions" }));
+      return;
+    }
 
-  // find the slide by id
-  const slide = await slideRepository.findOne({
-    where: { id: message.payload.slideId },
-  });
+    // fetch slide to edit
+    const slideRepository = AppDataSource.getRepository(Slide);
+    const slide = await slideRepository.findOne({
+      where: { id: message.payload.slideId },
+    });
 
-  if (slide) {
-    // update slide content and save
+    if (!slide) {
+      ws.send(JSON.stringify({ error: "Slide not found" }));
+      return;
+    }
+
+    // update the slide content and save
     slide.content = message.payload.content;
     await slideRepository.save(slide);
 
@@ -107,6 +99,13 @@ export const editText = async (
         client.send(JSON.stringify({ action: "slideEdited", payload: slide }));
       }
     });
+  } catch (error) {
+    ws.send(
+      JSON.stringify({
+        error:
+          error instanceof Error ? error.message : "An unknown error occurred",
+      })
+    );
   }
 };
 
@@ -116,22 +115,30 @@ export const deleteSlide = async (
   ws: WebSocket,
   wss: WebSocket.Server
 ) => {
-  const userRepository = AppDataSource.getRepository(User);
-  const slideRepository = AppDataSource.getRepository(Slide);
+  try {
+    const hasPermissions = await validatePermissions(
+      message.userId,
+      message.payload.presentationId
+    );
 
-  const user = await userRepository.findOne({ where: { id: message.userId } });
-  if (!user || (user.role !== "creator" && user.role !== "editor")) {
-    ws.send(JSON.stringify({ error: "Insufficient permissions" }));
-    return;
-  }
+    if (!hasPermissions) {
+      ws.send(JSON.stringify({ error: "Insufficient permissions" }));
+      return;
+    }
 
-  // find the slide by id and delete
-  const slide = await slideRepository.findOne({
-    where: { id: message.payload.slideId },
-  });
+    // fetch slide to delete
+    const slideRepository = AppDataSource.getRepository(Slide);
+    const slideToDelete = await slideRepository.findOne({
+      where: { id: message.payload.slideId },
+    });
 
-  if (slide) {
-    await slideRepository.remove(slide);
+    if (!slideToDelete) {
+      ws.send(JSON.stringify({ error: "Slide not found" }));
+      return;
+    }
+
+    // remove the slide from the database
+    await slideRepository.remove(slideToDelete);
 
     // broadcast slide deletion to all clients
     wss.clients.forEach((client) => {
@@ -144,5 +151,12 @@ export const deleteSlide = async (
         );
       }
     });
+  } catch (error) {
+    ws.send(
+      JSON.stringify({
+        error:
+          error instanceof Error ? error.message : "An unknown error occurred",
+      })
+    );
   }
 };

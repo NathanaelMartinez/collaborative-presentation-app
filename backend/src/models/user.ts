@@ -1,12 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany } from "typeorm";
-import { Presentation } from "./presentation";
-
-// define possible roles
-export enum UserRole {
-  Creator = "creator",
-  Editor = "editor",
-  Viewer = "viewer",
-}
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
+import { UserPresentation } from "./user-presentation";
 
 @Entity()
 export class User {
@@ -22,13 +15,9 @@ export class User {
   @Column()
   password!: string;
 
-  @Column({
-    type: "enum", //
-    enum: UserRole,
-    default: UserRole.Viewer, // default role is 'viewer'
-  })
-  role!: UserRole;
-
-  @ManyToMany(() => Presentation, (presentation) => presentation.users)
-  presentations!: Presentation[];
+  @OneToMany(
+    () => UserPresentation,
+    (userPresentation) => userPresentation.user
+  )
+  presentations!: UserPresentation[]; // join table with presentations
 }

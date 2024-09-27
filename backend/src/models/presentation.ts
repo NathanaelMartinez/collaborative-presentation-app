@@ -1,13 +1,6 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  OneToMany,
-  ManyToMany,
-  JoinTable,
-} from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
+import { UserPresentation } from "./user-presentation";
 import { Slide } from "./slide";
-import { User } from "./user";
 
 @Entity()
 export class Presentation {
@@ -20,8 +13,9 @@ export class Presentation {
   @OneToMany(() => Slide, (slide) => slide.presentation, { cascade: true })
   slides!: Slide[];
 
-  @ManyToMany(() => User, (user) => user.presentations)
-  @JoinTable() // required for owning side of MtM relationship
-  users!: User[];
+  @OneToMany(
+    () => UserPresentation,
+    (userPresentation) => userPresentation.presentation
+  )
+  users!: UserPresentation[]; // join table with users
 }
-export { Slide };

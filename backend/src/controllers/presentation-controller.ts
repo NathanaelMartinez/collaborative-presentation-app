@@ -1,38 +1,56 @@
 import WebSocket from "ws";
 import { Presentation } from "../models/presentation";
-import { generatePresentationId } from "../utils/id-generator";
+import { generatePresentationId } from "../shared/utils/id-generator";
 import { AppDataSource } from "../data-source";
 import { User } from "../models/user";
+import { UserPresentation } from "../models/user-presentation"; // join table
+import { UserRole } from "../shared/enums/user-role.enum";
 
 // handle presentation creation
 export const createPresentation = async (message: any, ws: WebSocket) => {
-  const presentationRepository = AppDataSource.getRepository(Presentation); // get typeorm repository
-  const newPresentationId = generatePresentationId(); // generate new presentation id
+  const presentationRepository = AppDataSource.getRepository(Presentation);
+  const userRepository = AppDataSource.getRepository(User);
+  const userPresentationRepository =
+    AppDataSource.getRepository(UserPresentation);
 
-  // create new presentation object
+  // find user creating the presentation
+  const user = await userRepository.findOne({ where: { id: message.userId } });
+  if (!user) {
+    ws.send(JSON.stringify({ error: "User not found" }));
+    return;
+  }
+
+  // create new presentation
   const newPresentation = presentationRepository.create({
-    id: newPresentationId,
     creatorId: message.userId!,
-    slides: [],
+    slides: [], // empty on creation
   });
+  await presentationRepository.save(newPresentation);
 
-  await presentationRepository.save(newPresentation); // save new presentation to database
+  // assign user as creator in junction table
+  const userPresentation = userPresentationRepository.create({
+    user: user,
+    presentation: newPresentation,
+    role: UserRole.Creator, // assign creator role
+  });
+  await userPresentationRepository.save(userPresentation);
 
   // notify client that presentation has been created
   ws.send(
     JSON.stringify({
       action: "presentationCreated",
-      payload: { presentationId: newPresentationId },
+      payload: { presentationId: newPresentation.id },
     })
   );
 };
 
-// handle joining a presentation
 export const joinPresentation = async (message: any, ws: WebSocket) => {
-  const presentationRepository = AppDataSource.getRepository(Presentation); // get typeorm repository
-  const userRepository = AppDataSource.getRepository(User); // get user repository
+  const presentationRepository = AppDataSource.getRepository(Presentation);
+  const userRepository = AppDataSource.getRepository(User);
+  const userPresentationRepository =
+    AppDataSource.getRepository(UserPresentation);
 
-  // find the user who is joining the presentation
+  // find the user joining the presentation
   const user = await userRepository.findOne({ where: { id: message.userId } });
   if (!user) {
     ws.send(JSON.stringify({ error: "User not found" }));
@@ -45,46 +63,60 @@ export const joinPresentation = async (message: any, ws: WebSocket) => {
     relations: ["slides", "users"], // include slides and users in the presentation
   });
 
-  // if presentation exists, add user to presentation
-  if (presentation) {
-    if (!presentation.users.some((u) => u.id === user.id)) {
-      // add user to the presentation if they are not already part of it
-      presentation.users.push(user);
-      await presentationRepository.save(presentation); // save updated presentation
-    }
-
-    // notify client that they have joined the presentation
-    ws.send(
-      JSON.stringify({
-        action: "joinedPresentation",
-        payload: presentation,
-      })
-    );
-  } else {
+  if (!presentation) {
     ws.send(JSON.stringify({ error: "Presentation not found" }));
+    return;
   }
+
+  // check if user is already part of presentation
+  const existingUserPresentation = await userPresentationRepository.findOne({
+    where: { user: user, presentation: presentation },
+  });
+
+  if (!existingUserPresentation) {
+    // add user to presentation with 'viewer' role if not already part of it
+    const userPresentation = userPresentationRepository.create({
+      user: user,
+      presentation: presentation,
+      role: UserRole.Viewer,
+    });
+    await userPresentationRepository.save(userPresentation);
+  }
+
+  // notify client they have joined the presentation
+  ws.send(
+    JSON.stringify({
+      action: "joinedPresentation",
+      payload: presentation,
+    })
+  );
 };
 
-// handle deleting a presentation
 export const deletePresentation = async (
   message: any,
+  ws: WebSocket,
   wss: WebSocket.Server
 ) => {
-  const presentationRepository = AppDataSource.getRepository(Presentation); // get typeorm repository
+  const presentationRepository = AppDataSource.getRepository(Presentation);
 
   // find presentation by id
-  const presentationToDelete = await presentationRepository.findOne(
-    message.payload.presentationId
-  );
+  const presentationToDelete = await presentationRepository.findOne({
+    where: { id: message.payload.presentationId },
+  });
 
-  // if presentation exists and user is creator, delete it
+  if (!presentationToDelete) {
+    ws.send(JSON.stringify({ error: "Presentation not found" }));
+    return;
+  }
+
+  // check if user is creator, only allow creators to delete
   if (
     presentationToDelete &&
     message.userId === presentationToDelete.creatorId
   ) {
-    await presentationRepository.remove(presentationToDelete); // delete presentation from database
+    await presentationRepository.remove(presentationToDelete); // delete presentation
 
-    // notify all connected users that presentation has been deleted
+    // notify all connected users
     wss.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(
@@ -95,5 +127,11 @@ export const deletePresentation = async (
         );
       }
     });
+  } else {
+    ws.send(
+      JSON.stringify({
+        error: "You do not have permission to delete this presentation",
+      })
+    );
   }
 };
