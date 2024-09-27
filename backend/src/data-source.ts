@@ -3,17 +3,18 @@ import { DataSource } from "typeorm";
 import { Presentation } from "./models/presentation";
 import { Slide } from "./models/slide";
 import { User } from "./models/user";
+import { UserPresentation } from "./models/user-presentation";
 
 export const AppDataSource = new DataSource({
   type: "postgres",
-  host: "localhost",
-  port: 5432,
-  username: "test",
-  password: "test",
-  database: "test",
+  host: process.env.DB_HOST,
+  port: parseInt(process.env.DB_PORT || "5432"),
+  username: process.env.DB_USERNAME,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
   synchronize: true,
   logging: false,
-  entities: [Presentation, Slide, User],
+  entities: [Presentation, Slide, User, UserPresentation],
   migrations: [],
   subscribers: [],
 });

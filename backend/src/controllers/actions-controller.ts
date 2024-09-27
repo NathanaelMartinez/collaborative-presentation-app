@@ -4,7 +4,7 @@ import {
   joinPresentation,
   deletePresentation,
 } from "./presentation-controller";
-import { Message } from "../models/message";
+import { Message } from "../shared/types/message";
 import { addSlide, deleteSlide, editText } from "./slide-controller";
 
 // handle all WebSocket actions for presentations and slides
