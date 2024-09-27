@@ -1,10 +1,9 @@
 import WebSocket from "ws";
 import { Presentation } from "../models/presentation";
-import { generatePresentationId } from "../shared/utils/id-generator";
 import { AppDataSource } from "../data-source";
 import { User } from "../models/user";
 import { UserPresentation } from "../models/user-presentation"; // join table
-import { UserRole } from "../shared/enums/enums";
+import { UserRole } from "../../../shared/enums/enums";
 
 // handle presentation creation
 export const createPresentation = async (message: any, ws: WebSocket) => {

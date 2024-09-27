@@ -27,3 +27,4 @@ export interface Message {
   userId: string; // keep this required for tracking users
   role?: UserRole; // keep optional, as roles may not always be sent
 }
+export { ActionType };

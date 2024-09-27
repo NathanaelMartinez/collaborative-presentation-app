@@ -1,5 +1,5 @@
 import WebSocket from "ws";
-import { Message } from "../shared/types/message";
+import { Message } from "../../../shared/types/message";
 import { handlePresentationActions } from "../controllers/actions-controller";
 
 // WebSocket Server
