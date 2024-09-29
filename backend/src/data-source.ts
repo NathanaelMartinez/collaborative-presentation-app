@@ -17,4 +17,11 @@ export const AppDataSource = new DataSource({
   entities: [Presentation, Slide, User, UserPresentation],
   migrations: [],
   subscribers: [],
+  extra: {
+    ssl: {
+      rejectUnauthorized: false,
+    },
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
+  },
 });

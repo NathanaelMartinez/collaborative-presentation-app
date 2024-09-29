@@ -15,20 +15,30 @@ router.post("/users", async (req: Request, res: Response) => {
   try {
     const userRepository = AppDataSource.getRepository(User);
 
+    // Check if a user with this display name already exists
+    const existingUser = await userRepository.findOne({
+      where: { username: displayName },
+    });
+
+    if (existingUser) {
+      // If user exists, return their ID
+      return res.status(200).json({ userId: existingUser.id });
+    }
+
     // create new user with display name
-    console.log("Creating user with displayName:", displayName); // Log the display name
+    console.log("Creating user with displayName:", displayName);
 
     const newUser = userRepository.create({ username: displayName });
 
     // save new user to database
     await userRepository.save(newUser);
 
-    console.log("New user saved with ID:", newUser.id); // Log the new user's ID
+    console.log("New user saved with ID:", newUser.id);
 
     // return new user id
     res.status(200).json({ userId: newUser.id });
   } catch (error) {
-    console.error("Error creating user:", error); // More specific logging
+    console.error("Error creating user:", error);
     res.status(500).json({ error: "Failed to create user" });
   }
 });
