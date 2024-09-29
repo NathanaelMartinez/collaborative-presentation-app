@@ -1,23 +1,20 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import Login from './pages/login';
 import Home from './pages/home';
-import { UserProvider } from './context/user-context';
+import ChooseDisplayName from './pages/choose-display-name';
 
 const App: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   return (
-    <UserProvider>
       <Router>
         <Routes>
           <Route
             path="/"
-            element={isLoggedIn ? <Home /> : <Login setIsLoggedIn={setIsLoggedIn} />}
+            element={isLoggedIn ? <Home /> : <ChooseDisplayName setIsLoggedIn={setIsLoggedIn} />}
           />
         </Routes>
       </Router>
-    </UserProvider>
   );
 };
 

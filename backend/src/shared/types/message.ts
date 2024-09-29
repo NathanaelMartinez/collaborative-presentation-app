@@ -1,6 +1,6 @@
 import { ActionType, UserRole } from "../enums/enums";
 
-export type CreatePresentationPayload = { content: string };
+export type CreatePresentationPayload = { presentationId: string };
 export type JoinPresentationPayload = { presentationId: string };
 export type DeletePresentationPayload = { presentationId: string };
 export type AddSlidePayload = { content: string };

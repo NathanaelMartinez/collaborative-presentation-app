@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Message } from "../../../shared/types/message";
+import { Message } from "../shared/types/message";
 
 export const useWebSocket = (url: string) => {
   const [ws, setWs] = useState<WebSocket | null>(null);

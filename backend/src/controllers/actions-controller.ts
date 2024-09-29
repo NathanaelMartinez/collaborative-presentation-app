@@ -13,7 +13,7 @@ import {
   AddSlidePayload,
   EditTextPayload,
   DeleteSlidePayload,
-} from "../../../shared/types/message";
+} from "../shared/types/message";
 import { addSlide, deleteSlide, editText } from "./slide-controller";
 
 // handle all WebSocket actions for presentations and slides
@@ -24,8 +24,7 @@ export const handlePresentationActions = (
 ) => {
   switch (message.action) {
     case ActionType.CreatePresentation:
-      // type cast payload to specific payload type
-      createPresentation(message.payload as CreatePresentationPayload, ws);
+      createPresentation(message, ws);
       break;
 
     case ActionType.JoinPresentation:

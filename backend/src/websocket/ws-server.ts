@@ -1,6 +1,6 @@
 import WebSocket from "ws";
-import { Message } from "../../../shared/types/message";
 import { handlePresentationActions } from "../controllers/actions-controller";
+import { Message } from "../shared/types/message";
 
 // WebSocket Server
 export const createWebSocketServer = (server: any) => {
@@ -12,6 +12,7 @@ export const createWebSocketServer = (server: any) => {
     // listen for messages
     ws.on("message", (data: string) => {
       const message: Message = JSON.parse(data);
+      console.log("Received message:", message);
       handlePresentationActions(message, wss, ws); // process actions from clients
     });
 

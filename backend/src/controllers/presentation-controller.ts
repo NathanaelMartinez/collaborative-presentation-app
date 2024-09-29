@@ -3,17 +3,21 @@ import { Presentation } from "../models/presentation";
 import { AppDataSource } from "../data-source";
 import { User } from "../models/user";
 import { UserPresentation } from "../models/user-presentation"; // join table
-import { UserRole } from "../../../shared/enums/enums";
+import { UserRole } from "../shared/enums/enums";
+import { Message } from "../shared/types/message";
 
 // handle presentation creation
-export const createPresentation = async (message: any, ws: WebSocket) => {
+export const createPresentation = async (message: Message, ws: WebSocket) => {
   const presentationRepository = AppDataSource.getRepository(Presentation);
   const userRepository = AppDataSource.getRepository(User);
   const userPresentationRepository =
     AppDataSource.getRepository(UserPresentation);
 
+  // convert userId from string to number
+  const userId = parseInt(message.userId, 10);
+
   // find user creating the presentation
-  const user = await userRepository.findOne({ where: { id: message.userId } });
+  const user = await userRepository.findOne({ where: { id: userId } });
   if (!user) {
     ws.send(JSON.stringify({ error: "User not found" }));
     return;
@@ -21,12 +25,12 @@ export const createPresentation = async (message: any, ws: WebSocket) => {
 
   // create new presentation
   const newPresentation = presentationRepository.create({
-    creatorId: message.userId!,
+    creatorId: user.id, // use the user ID for the creator
     slides: [], // empty on creation
   });
   await presentationRepository.save(newPresentation);
 
-  // assign user as creator in junction table
+  // assign user as creator in the junction table
   const userPresentation = userPresentationRepository.create({
     user: user,
     presentation: newPresentation,

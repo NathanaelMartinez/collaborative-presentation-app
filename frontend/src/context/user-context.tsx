@@ -6,13 +6,11 @@ interface UserContextType {
   setUserId: (userId: string) => void;
 }
 
-// create context with a default value
-const UserContext = createContext<UserContextType | undefined>(undefined);;
+// Create context with a default value
+const UserContext = createContext<UserContextType | undefined>(undefined);
 
-// create provider component
-export const UserProvider: React.FC<{ children: ReactNode }> = ({
-  children,
-}) => {
+// Create provider component
+export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [userId, setUserId] = useState<string | null>(null);
 
   return (
@@ -22,7 +20,7 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({
   );
 };
 
-// create hook to use UserContext
+// Create hook to use UserContext
 export const useUser = () => {
   const context = useContext(UserContext);
   if (!context) {

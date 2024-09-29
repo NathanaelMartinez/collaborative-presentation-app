@@ -7,8 +7,8 @@ export class Presentation {
   @PrimaryGeneratedColumn("uuid")
   id!: string;
 
-  @Column()
-  creatorId!: string;
+  @Column({ nullable: false })
+  creatorId!: number;
 
   @OneToMany(() => Slide, (slide) => slide.presentation, { cascade: true })
   slides!: Slide[];
